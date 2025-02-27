@@ -1,0 +1,66 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.hero-section {
+    background-color: #28a745;
+    color: white;
+    padding: 80px 0;
+    margin-bottom: 40px;
+}
+
+.feature-card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    color: #28a745;
+    margin-bottom: 15px;
+}
+
+.section-title {
+    margin-bottom: 40px;
+    position: relative;
+    padding-bottom: 15px;
+}
+
+.section-title:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background-color: #28a745;
+}
+
+.eco-stats {
+    background-color: #e9f7ef;
+    padding: 60px 0;
+    margin: 60px 0;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e9f7ef;
+    color: #28a745;
+}

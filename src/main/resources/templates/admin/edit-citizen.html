@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Edit Citizen</title>
+</head>
+<body>
+<form th:action="@{/admin/citizens/edit/{id}(id=${citizen.id})}" method="post" enctype="multipart/form-data">
+    <input type="text" name="name" th:value="${citizen.name}" required>
+    <input type="email" name="email" th:value="${citizen.email}" required>
+    <input type="password" name="password" placeholder="New Password (leave blank to keep current)">
+    <input type="text" name="phoneNumber" th:value="${citizen.phoneNumber}">
+
+    <label>Roles:</label>
+    <select name="roles" multiple>
+        <option th:selected="${#lists.contains(citizen.roles, 'ADMIN')}" value="ADMIN">Admin</option>
+        <option th:selected="${#lists.contains(citizen.roles, 'COLLECTOR')}" value="COLLECTOR">Collector</option>
+    </select>
+
+    <label>Profile Picture:</label>
+    <input type="file" name="profilePicFile">
+
+    <button type="submit">Update</button>
+</form>
+</body>
+</html>

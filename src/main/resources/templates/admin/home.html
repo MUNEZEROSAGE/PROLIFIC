@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Admin Dashboard</title>
+</head>
+<body>
+<h1>Citizen Management</h1>
+<a href="/admin/citizens/get">Add New Citizen</a>
+
+<table>
+    <tr th:each="citizen : ${citizens.content}">
+        <td th:text="${citizen.name}"></td>
+        <td th:text="${citizen.email}"></td>
+        <td>
+            <a th:href="@{/admin/citizens/edit/{id}(id=${citizen.id})}">Edit</a>
+            <a th:href="@{/admin/citizens/delete/{id}(id=${citizen.id})}">Delete</a>
+        </td>
+    </tr>
+</table>
+
+<!-- Pagination -->
+<div>
+        <span th:each="i : ${#numbers.sequence(0, totalPages-1)}">
+            <a th:href="@{/admin/citizens(page=${i}, size=${citizens.size}, sortBy=${sortBy})}"
+               th:text="${i+1}"
+               th:class="${i == currentPage} ? 'current-page'"></a>
+        </span>
+</div>
+</body>
+</html>

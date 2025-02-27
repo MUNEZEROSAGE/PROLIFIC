@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add Citizen</title>
+</head>
+<body>
+<form th:action="@{/admin/citizens/add}" method="post" enctype="multipart/form-data">
+    <input type="text" name="name" placeholder="Name" required>
+    <input type="email" name="email" placeholder="Email" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <input type="text" name="phoneNumber" placeholder="Phone Number">
+
+    <label>Roles:</label>
+    <select name="roles" multiple>
+        <option value="ADMIN">Admin</option>
+        <option value="COLLECTOR">Collector</option>
+    </select>
+
+    <label>Profile Picture:</label>
+    <input type="file" name="profilePicFile">
+
+    <button type="submit">Save</button>
+</form>
+</body>
+</html>

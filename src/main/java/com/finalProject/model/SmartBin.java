@@ -19,6 +19,9 @@ public class SmartBin {
     private double fillLevel; // 0-100%
     private String status; // "EMPTY", "HALF_FULL", "FULL"
     private LocalDateTime lastCollectedAt;
+    @Lob
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] qrCode;
 
     @OneToMany(mappedBy = "smartBin")
     private List<CollectionRequest> requests;

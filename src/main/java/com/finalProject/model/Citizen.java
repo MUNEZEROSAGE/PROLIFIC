@@ -23,6 +23,7 @@ public class Citizen {
     @Column(name = "phone_number")
     private String phoneNumber;
     private LocalDate createdAt;
+    private String Location;
 
     @OneToMany(mappedBy = "citizen")
     private List<WasteItem> scannedItems;

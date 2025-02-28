@@ -22,8 +22,10 @@ public class SecurityConfig {
                 .userDetailsService(userDetailsService)
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/", "/home", "/error", "/css/**", "/Error/**", "/js/**", "/media/**").permitAll()
+                        .requestMatchers("/signup", "/perform_signup").permitAll() // Add this line
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/collector/**").hasRole("COLLECTOR")
+                        .requestMatchers("/citizen/**").hasRole("CITIZEN")
                         .anyRequest().authenticated()
                 )
                 .formLogin((form) -> form

@@ -11,6 +11,7 @@ import java.util.List;
 public interface CitizenService {
     Citizen saveCitizen(Citizen citizen);
     Page<Citizen> getAllCitizens(Pageable pageable);
+    List<Citizen> getAllCitizens();
     Citizen getCitizenById(Long id);
     Citizen getCitizenByEmail(String email);
     void deleteCitizen(Long id);

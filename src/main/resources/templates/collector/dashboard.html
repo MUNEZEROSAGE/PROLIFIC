@@ -1,86 +1,88 @@
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<head>-->
+<!--    <title>Collector Dashboard</title>-->
+<!--    &lt;!&ndash; Include Bootstrap CSS or your custom styles &ndash;&gt;-->
+<!--    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">-->
+<!--</head>-->
+<!--<body>-->
+<!--<div th:replace="fragments/header :: header"></div>-->
+
+<!--<div class="container mt-4">-->
+<!--    <h2>Collector Dashboard</h2>-->
+
+<!--    <div class="row">-->
+<!--        &lt;!&ndash; Total Bins Card &ndash;&gt;-->
+<!--        <div class="col-md-6">-->
+<!--            <div class="card text-white bg-primary mb-3">-->
+<!--                <div class="card-header">Total Bins</div>-->
+<!--                <div class="card-body">-->
+<!--                    <h5 class="card-title" th:text="${totalBins}">0</h5>-->
+<!--                    <p class="card-text">Total number of smart bins in the system.</p>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; Half-Full Bins Card &ndash;&gt;-->
+<!--        <div class="col-md-6">-->
+<!--            <div class="card text-white bg-warning mb-3">-->
+<!--                <div class="card-header">Half-Full Bins</div>-->
+<!--                <div class="card-body">-->
+<!--                    <h5 class="card-title" th:text="${halfFullBins}">0</h5>-->
+<!--                    <p class="card-text">Number of bins that are half-full and need attention.</p>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; Quick Links &ndash;&gt;-->
+<!--    <div class="mt-4">-->
+<!--        <a href="/collector/bins" class="btn btn-secondary">Manage Bins</a>-->
+<!--        <a href="/collector/collection-requests" class="btn btn-secondary">View Collection Requests</a>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; Include Bootstrap JS or your custom scripts &ndash;&gt;-->
+<!--<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>-->
+<!--</body>-->
+<!--</html>-->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Collector Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
 </head>
 <body>
-<div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar -->
-        <nav class="col-md-2 d-none d-md-block bg-light sidebar">
-            <div class="sidebar-sticky">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/collector/dashboard">
-                            Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/collector/bins/new">
-                            Create New Bin
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+<div><!-- Header removed --></div>
 
-        <!-- Main Content -->
-        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
-            <h1 class="mt-4">Smart Bins</h1>
+<div>
+    <h2>Collector Dashboard</h2>
 
-            <!-- Bin List -->
-            <div class="row">
-                <div th:each="bin : ${bins}" class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Bin ID: [[${bin.id}]]</h5>
-                            <p class="card-text">Location: [[${bin.location}]]</p>
-                            <p class="card-text">Status:
-                                <span th:class="${bin.status == 'FULL' ? 'badge bg-danger' :
-                                                     bin.status == 'BROKEN' ? 'badge bg-warning' :
-                                                     'badge bg-success'}">
-                                        [[${bin.status}]]
-                                    </span>
-                            </p>
-
-                            <!-- Actions -->
-                            <div class="d-flex justify-content-between">
-                                <a th:href="@{/collector/bins/qr/{id}(id=${bin.id})}"
-                                   class="btn btn-primary btn-sm">
-                                    Download QR
-                                </a>
-                                <a th:href="@{/collector/bins/edit/{id}(id=${bin.id})}"
-                                   class="btn btn-secondary btn-sm">
-                                    Edit
-                                </a>
-                                <a th:href="@{/collector/bins/delete/{id}(id=${bin.id})}"
-                                   class="btn btn-danger btn-sm">
-                                    Delete
-                                </a>
-                            </div>
-                            <div th:if="${bin.status == 'FULL'}" class="mt-2">
-                                <a th:href="@{/collector/bins/collect/{id}(id=${bin.id})}"
-                                   class="btn btn-success btn-sm w-100">
-                                    Mark as Collected
-                                </a>
-                            </div>
-                            <div th:if="${bin.status != 'BROKEN'}" class="mt-2">
-                                <a th:href="@{/collector/bins/flag/{id}(id=${bin.id})}"
-                                   class="btn btn-warning btn-sm w-100">
-                                    Flag as Broken
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+    <div>
+        <div>
+            <div>
+                <div>Total Bins</div>
+                <div>
+                    <h5 th:text="${totalBins}">0</h5>
+                    <p>Total number of smart bins in the system.</p>
                 </div>
             </div>
-        </main>
+        </div>
+
+        <div>
+            <div>
+                <div>Half-Full Bins</div>
+                <div>
+                    <h5 th:text="${halfFullBins}">0</h5>
+                    <p>Number of bins that are half-full and need attention.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <a href="/collector/bins">Manage Bins</a>
+        <a href="/collector/collection-requests">View Collection Requests</a>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/js/dashboard.js"></script>
 </body>
 </html>

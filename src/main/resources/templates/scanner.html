@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Waste Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+</head>
+<body>
+
+<div class="container">
+    <h2>Scan Waste Item</h2>
+
+    <!-- Camera Feed -->
+    <video id="camera" width="640" height="480" autoplay></video>
+    <canvas id="detectionCanvas" width="640" height="480" style="display: none;"></canvas>
+
+    <!-- Detection Results -->
+    <div id="result" class="mt-3">
+        <p class="alert alert-info">Scanning...</p>
+        <div id="qrCodeContainer" style="display: none;">
+            <img id="qrCodeImage" src="" alt="QR Code">
+            <p>Scan this QR code to earn tokens!</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let model = null;
+    let video = document.getElementById('camera');
+    let canvas = document.getElementById('detectionCanvas');
+    let ctx = canvas.getContext('2d');
+
+    // Initialize COCO-SSD
+    async function initializeScanner() {
+        try {
+            model = await cocoSsd.load();
+            startCamera();
+            detectObjects();
+        } catch (error) {
+            console.error('Error loading model:', error);
+        }
+    }
+
+    // Start camera
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+        } catch (error) {
+            console.error('Camera access denied:', error);
+        }
+    }
+
+    // Object detection loop
+    async function detectObjects() {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const predictions = await model.detect(canvas);
+
+        // Check for plastic bottles
+        const hasPlasticBottle = predictions.some(p => p.class === 'bottle');
+
+        if (hasPlasticBottle) {
+            document.getElementById('result').innerHTML = `
+                    <div class="alert alert-success">
+                        Plastic bottle detected! Generating QR code...
+                    </div>
+                `;
+
+            // Generate QR code via backend
+            fetch('/citizen/generate-qr', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('qrCodeImage').src = data.qrCodeUrl;
+                    document.getElementById('qrCodeContainer').style.display = 'block';
+                });
+        } else {
+            document.getElementById('result').innerHTML = `
+                    <div class="alert alert-danger">
+                        No plastic bottle detected. Try again.
+                    </div>
+                `;
+        }
+
+        requestAnimationFrame(detectObjects);
+    }
+
+    initializeScanner();
+</script>
+</body>
+</html>

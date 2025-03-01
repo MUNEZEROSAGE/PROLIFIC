@@ -32,6 +32,11 @@ public class CitizenServiceImpl implements CitizenService {
     }
 
     @Override
+    public List<Citizen> getAllCitizens() {
+        return citizenRepository.findAll(); // Non-paginated
+    }
+
+    @Override
     public Citizen getCitizenById(Long id) {
         return citizenRepository.findById(id).orElse(null);
     }

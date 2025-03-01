@@ -15,7 +15,8 @@ public class SmartBin {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String location; // GPS coordinates
+    private double latitude;
+    private double longitude;
     private double fillLevel; // 0-100%
     private String status; // "EMPTY", "HALF_FULL", "FULL"
     private LocalDateTime lastCollectedAt;

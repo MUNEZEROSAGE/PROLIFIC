@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class WasteItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,9 +18,10 @@ public class WasteItem {
     private String imagePath;
     private String classification;
     private LocalDateTime scannedAt;
-    //Relationships
+    @ManyToOne
+    @JoinColumn(name = "smart_bin_id") // Add this relationship
+    private SmartBin bin;
     @ManyToOne
     @JoinColumn(name = "citizen_id")
     private Citizen citizen;
-
 }

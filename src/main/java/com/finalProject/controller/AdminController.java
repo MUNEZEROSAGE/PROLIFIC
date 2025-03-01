@@ -38,9 +38,9 @@ public class AdminController {
                                 @RequestParam(defaultValue = "name") String sortBy) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         Page<Citizen> citizenPage = citizenService.getAllCitizens(pageable);
+
         String email = authentication.getName();
         Citizen citizen = citizenService.getCitizenByEmail(email);
-
         model.addAttribute("fullName", citizen.getName());
         model.addAttribute("role", citizen.getRoles().iterator().next());
         if (citizen.getProfilePic() != null) {
@@ -48,6 +48,7 @@ public class AdminController {
         }else{
             model.addAttribute("profilePic", "/media/images.png");
         }
+
         model.addAttribute("citizens", citizenPage);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", citizenPage.getTotalPages());

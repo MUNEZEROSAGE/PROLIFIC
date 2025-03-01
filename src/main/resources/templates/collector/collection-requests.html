@@ -1,0 +1,70 @@
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<head>-->
+<!--    <title>Collection Requests</title>-->
+<!--    &lt;!&ndash; Include your CSS/JS files &ndash;&gt;-->
+<!--</head>-->
+<!--<body>-->
+<!--<div th:replace="fragments/header :: header"></div>-->
+
+<!--<div class="container">-->
+<!--    <h2>Pending Collection Requests</h2>-->
+
+<!--    <table class="table">-->
+<!--        <thead>-->
+<!--        <tr>-->
+<!--            <th>Bin Location</th>-->
+<!--            <th>Requested At</th>-->
+<!--            <th>Status</th>-->
+<!--        </tr>-->
+<!--        </thead>-->
+<!--        <tbody>-->
+<!--        <tr th:each="request : ${requests}">-->
+<!--            <td th:text="${request.smartBin.location}"></td>-->
+<!--            <td th:text="${#temporals.format(request.requestedAt, 'dd/MM/yyyy HH:mm')}"></td>-->
+<!--            <td>-->
+<!--                        <span th:text="${request.status}"-->
+<!--                              class="badge"-->
+<!--                              th:classappend="${request.status == 'PENDING' ? 'bg-warning' : 'bg-success'}"></span>-->
+<!--            </td>-->
+<!--        </tr>-->
+<!--        </tbody>-->
+<!--    </table>-->
+
+<!--    &lt;!&ndash; Pagination &ndash;&gt;-->
+<!--    <div th:replace="fragments/pagination :: pagination(${currentPage}, ${totalPages}, '/collector/collection-requests')"></div>-->
+<!--</div>-->
+<!--</body>-->
+<!--</html>-->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Collection Requests</title>
+</head>
+<body>
+<div><!-- Header removed --></div>
+
+<div>
+    <h2>Pending Collection Requests</h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Bin Location</th>
+            <th>Requested At</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="request : ${requests}">
+            <td th:text="${request.smartBin.location}"></td>
+            <td th:text="${#temporals.format(request.requestedAt, 'dd/MM/yyyy HH:mm')}"></td>
+            <td>
+                <span th:text="${request.status}"></span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

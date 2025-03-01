@@ -1,0 +1,385 @@
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<head>-->
+<!--    <title>Scan Waste Item</title>-->
+<!--    &lt;!&ndash; Include TensorFlow.js and COCO-SSD &ndash;&gt;-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>-->
+<!--    &lt;!&ndash; QR Code Library &ndash;&gt;-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>-->
+<!--</head>-->
+<!--<body>-->
+
+
+<!--<div class="container">-->
+<!--    <h2>Scan Waste Item for Bin: <span th:text="${bin.id}"></span></h2>-->
+
+<!--    &lt;!&ndash; Webcam Feed &ndash;&gt;-->
+<!--    <video id="webcam" width="640" height="480" autoplay></video>-->
+<!--    <canvas id="canvas" width="640" height="480"></canvas>-->
+
+<!--    &lt;!&ndash; Detection Result &ndash;&gt;-->
+<!--    <div id="result" class="mt-3"></div>-->
+
+<!--    &lt;!&ndash; QR Code Display &ndash;&gt;-->
+<!--    <div id="qrcode" class="mt-3"></div>-->
+
+<!--    <button id="scanButton" class="btn btn-primary">Start Scanning</button>-->
+<!--</div>-->
+
+<!--<script>-->
+<!--    let model = null;-->
+<!--    let binId = /* Extract bin ID from Thymeleaf */ [[${bin.id}]];-->
+
+<!--    // Load COCO-SSD model-->
+<!--    async function loadModel() {-->
+<!--        model = await cocoSsd.load();-->
+<!--        console.log("Model loaded!");-->
+<!--    }-->
+
+<!--    // Start webcam-->
+<!--    async function startWebcam() {-->
+<!--        const video = document.getElementById('webcam');-->
+<!--        const stream = await navigator.mediaDevices.getUserMedia({ video: true });-->
+<!--        video.srcObject = stream;-->
+<!--    }-->
+
+<!--    // Detect objects-->
+<!--    async function detect() {-->
+<!--        const video = document.getElementById('webcam');-->
+<!--        const canvas = document.getElementById('canvas');-->
+<!--        const ctx = canvas.getContext('2d');-->
+
+<!--        ctx.drawImage(video, 0, 0, 640, 480);-->
+<!--        const predictions = await model.detect(canvas);-->
+
+<!--        // Check for "bottle" class-->
+<!--        const isPlasticBottle = predictions.some(p => p.class === 'bottle');-->
+<!--        const resultDiv = document.getElementById('result');-->
+
+<!--        if (isPlasticBottle) {-->
+<!--            resultDiv.innerHTML = "<h3 class='text-success'>Plastic Bottle Detected!</h3>";-->
+<!--            generateQRCode();-->
+<!--            updateBinFillLevel();-->
+<!--        } else {-->
+<!--            resultDiv.innerHTML = "<h3 class='text-danger'>Not a Plastic Bottle</h3>";-->
+<!--        }-->
+<!--    }-->
+
+<!--    // Generate QR Code-->
+<!--    function generateQRCode() {-->
+<!--        const qrDiv = document.getElementById('qrcode');-->
+<!--        qrDiv.innerHTML = '';-->
+<!--        new QRCode(qrDiv, {-->
+<!--            text: `WasteItem: Plastic Bottle, BinID: ${binId}, Timestamp: ${new Date().toISOString()}`,-->
+<!--            width: 128,-->
+<!--            height: 128-->
+<!--        });-->
+<!--    }-->
+
+<!--    // Send data to server to update fill level-->
+<!--    async function updateBinFillLevel() {-->
+<!--        await fetch(`/api/bins/${binId}/increment-fill?amount=5`, { method: 'POST' });-->
+<!--    }-->
+
+<!--    // Initialize-->
+<!--    document.getElementById('scanButton').addEventListener('click', async () => {-->
+<!--        await loadModel();-->
+<!--        await startWebcam();-->
+<!--        setInterval(detect, 2000); // Detect every 2 seconds-->
+<!--    });-->
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{collector/layout}">
+<head>
+    <title>Scan Waste Item</title>
+    <!-- TensorFlow.js and COCO-SSD for object detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode.js/qrcode.min.js"></script>
+    <style>
+        .scan-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .webcam-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #webcam, #canvas {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .status-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        .detection-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .detection-failure {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        #qrcode {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .btn-scan {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-scan:hover {
+            background-color: #218838;
+        }
+        .bin-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="scan-container">
+        <div class="bin-info">
+            <h2>Scan Waste Item</h2>
+            <p><strong>Bin ID:</strong> <span th:text="${bin.id}"></span></p>
+            <p><strong>Location:</strong> <span th:text="'Lat: ' + ${bin.latitude} + ', Long: ' + ${bin.longitude}"></span></p>
+            <p><strong>Current Fill Level:</strong> <span th:text="${bin.fillLevel}"></span>%</p>
+            <p><strong>Status:</strong> <span th:text="${bin.status}"></span></p>
+        </div>
+
+        <div class="webcam-container">
+            <video id="webcam" width="640" height="480" autoplay></video>
+            <canvas id="canvas" width="640" height="480"></canvas>
+        </div>
+
+        <div id="result" class="status-box">
+            <p>Press "Start Scanning" to activate the camera and begin detection.</p>
+        </div>
+
+        <div id="qrcode"></div>
+
+        <button id="scanButton" class="btn-scan">Start Scanning</button>
+        <a th:href="@{/collector/bins}" class="btn btn-secondary mt-3">Back to Bins</a>
+    </div>
+
+    <script th:inline="javascript">
+        // Get bin ID from Thymeleaf context
+        const binId = [[${bin.id}]];
+        let model = null;
+        let isScanning = false;
+        let detectionInterval = null;
+
+        // Load COCO-SSD model
+        async function loadModel() {
+            try {
+                document.getElementById('result').innerHTML = '<p>Loading model, please wait...</p>';
+                model = await cocoSsd.load();
+                document.getElementById('result').innerHTML = '<p>Model loaded! Ready to detect waste items.</p>';
+                console.log("Model loaded successfully!");
+                return true;
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p>Error loading model: ' + error.message + '</p>';
+                console.error("Failed to load model:", error);
+                return false;
+            }
+        }
+
+        // Start webcam
+        async function startWebcam() {
+            const video = document.getElementById('webcam');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' } // Use back camera on mobile
+                });
+                video.srcObject = stream;
+                return new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        resolve(true);
+                    };
+                });
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p>Camera access error: ' + error.message + '</p>';
+                console.error("Camera access error:", error);
+                return false;
+            }
+        }
+
+        // Detect objects
+        async function detect() {
+            if (!model || !isScanning) return;
+
+            const video = document.getElementById('webcam');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const resultDiv = document.getElementById('result');
+
+            // Draw video frame on canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            try {
+                // Get predictions
+                const predictions = await model.detect(canvas);
+
+                // Clear previous drawings
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Draw bounding boxes for all detected objects
+                predictions.forEach(prediction => {
+                    // Draw bounding box
+                    const [x, y, width, height] = prediction.bbox;
+                    ctx.strokeStyle = prediction.class === 'bottle' ? '#00FF00' : '#FF0000';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(x, y, width, height);
+
+                    // Draw label
+                    ctx.fillStyle = prediction.class === 'bottle' ? '#00FF00' : '#FF0000';
+                    ctx.font = '18px Arial';
+                    ctx.fillText(
+                        `${prediction.class}: ${Math.round(prediction.score * 100)}%`,
+                        x, y > 20 ? y - 5 : y + 20
+                    );
+                });
+
+                // Check for recyclable items (focusing on bottle for this example)
+                const detectedBottle = predictions.find(p => p.class === 'bottle' && p.score > 0.7);
+
+                if (detectedBottle) {
+                    resultDiv.className = 'status-box detection-success';
+                    resultDiv.innerHTML = `
+                            <h3>Recyclable Item Detected!</h3>
+                            <p>Type: Plastic Bottle</p>
+                            <p>Confidence: ${Math.round(detectedBottle.score * 100)}%</p>
+                            <p>Adding to bin fill level...</p>
+                        `;
+                    generateQRCode();
+                    await updateBinFillLevel();
+
+                    // Pause detection for 3 seconds after successful detection
+                    isScanning = false;
+                    setTimeout(() => {
+                        isScanning = true;
+                    }, 3000);
+                } else {
+                    resultDiv.className = 'status-box';
+                    resultDiv.innerHTML = '<p>Scanning for recyclable items...</p>';
+                }
+            } catch (error) {
+                console.error("Detection error:", error);
+            }
+        }
+
+        // Generate QR Code
+        function generateQRCode() {
+            const qrDiv = document.getElementById('qrcode');
+            qrDiv.innerHTML = '';
+
+            const qrData = JSON.stringify({
+                item: 'Plastic Bottle',
+                binId: binId,
+                timestamp: new Date().toISOString()
+            });
+
+            new QRCode(qrDiv, {
+                text: qrData,
+                width: 128,
+                height: 128
+            });
+        }
+
+        // Send data to server to update fill level
+        async function updateBinFillLevel() {
+            try {
+                const response = await fetch(`/api/bins/${binId}/increment-fill?amount=5`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Include CSRF token if your Spring Security requires it
+                        // 'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').getAttribute('content')
+                    }
+                });
+
+                if (response.ok) {
+                    console.log("Fill level updated successfully");
+                } else {
+                    console.error("Failed to update fill level:", await response.text());
+                }
+            } catch (error) {
+                console.error("Error updating fill level:", error);
+            }
+        }
+
+        // Toggle scanning
+        document.getElementById('scanButton').addEventListener('click', async () => {
+            const button = document.getElementById('scanButton');
+
+            if (!isScanning) {
+                button.textContent = 'Initializing...';
+                button.disabled = true;
+
+                // Load model and start webcam
+                const modelLoaded = await loadModel();
+                const webcamStarted = await startWebcam();
+
+                if (modelLoaded && webcamStarted) {
+                    isScanning = true;
+                    button.textContent = 'Stop Scanning';
+                    button.disabled = false;
+                    detectionInterval = setInterval(detect, 1000); // Detect every second
+                } else {
+                    button.textContent = 'Start Scanning';
+                    button.disabled = false;
+                }
+            } else {
+                // Stop scanning
+                isScanning = false;
+                clearInterval(detectionInterval);
+                button.textContent = 'Start Scanning';
+
+                // Stop webcam
+                const video = document.getElementById('webcam');
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+
+                // Clear canvas
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                document.getElementById('result').className = 'status-box';
+                document.getElementById('result').innerHTML = '<p>Scanning stopped. Press "Start Scanning" to begin again.</p>';
+            }
+        });
+    </script>
+</div>
+</body>
+</html>

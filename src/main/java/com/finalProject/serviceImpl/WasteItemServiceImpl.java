@@ -1,26 +1,55 @@
 package com.finalProject.serviceImpl;
 
+import com.finalProject.model.CollectionRequest;
+import com.finalProject.model.SmartBin;
 import com.finalProject.model.WasteItem;
 import com.finalProject.repository.WasteItemRepository;
+import com.finalProject.service.CollectionRequestService;
+import com.finalProject.service.SmartBinService;
 import com.finalProject.service.WasteItemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 public class WasteItemServiceImpl implements WasteItemService {
 
     private final WasteItemRepository wasteItemRepository;
+    private final SmartBinService smartBinService; // Add this
+    private final CollectionRequestService collectionRequestService; // Add this
 
     @Autowired
-    public WasteItemServiceImpl(WasteItemRepository wasteItemRepository) {
+    public WasteItemServiceImpl(WasteItemRepository wasteItemRepository,
+                                SmartBinService smartBinService, // Add this
+                                CollectionRequestService collectionRequestService) { // Add this
         this.wasteItemRepository = wasteItemRepository;
+        this.smartBinService = smartBinService; // Initialize
+        this.collectionRequestService = collectionRequestService; // Initialize
     }
 
     @Override
     public WasteItem saveWasteItem(WasteItem wasteItem) {
-        return wasteItemRepository.save(wasteItem);
+        // Save waste item
+        WasteItem savedItem = wasteItemRepository.save(wasteItem);
+        // Update bin's fill level
+        SmartBin bin = savedItem.getBin(); // Ensure getBin() exists
+        if (bin != null) {
+            bin.setFillLevel(bin.getFillLevel() + 5); // Example: Increase by 5% per item
+            smartBinService.updateSmartBin(bin.getId(), bin);
+            // Check if fill level >85%
+            if (bin.getFillLevel() > 85) {
+                CollectionRequest request = new CollectionRequest();
+                request.setSmartBin(bin);
+                request.setStatus("PENDING");
+                request.setRequestedAt(LocalDateTime.now());
+                collectionRequestService.saveCollectionRequest(request);
+            }
+        }
+
+        return savedItem;
     }
 
     @Override
@@ -56,4 +85,5 @@ public class WasteItemServiceImpl implements WasteItemService {
     public Page<WasteItem> findByCitizenId(Long citizenId, Pageable pageable) {
         return wasteItemRepository.findByCitizenId(citizenId, pageable);
     }
+
 }

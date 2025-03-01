@@ -130,10 +130,8 @@ public class LoginController {
 
             // Add CITIZEN role
             citizen.addRole("CITIZEN");
-
             // Save the citizen
             citizenService.saveCitizen(citizen);
-
             // Redirect to login page with success message
             return "redirect:/login?signup=success";
         } catch (IOException e) {

@@ -24,6 +24,7 @@ public class Citizen {
     private String phoneNumber;
     private LocalDate createdAt;
     private String Location;
+    private int tokens;
 
     @OneToMany(mappedBy = "citizen")
     private List<WasteItem> scannedItems;

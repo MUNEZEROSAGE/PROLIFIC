@@ -25,5 +25,6 @@ public interface CitizenService {
     void removeRoleFromCitizen(Long citizenId, String role);
     long countCitizensByRole(String role);
     long getTotalCitizensCount();
+    void addEcoPoints(Long citizenId, int points);
 
 }

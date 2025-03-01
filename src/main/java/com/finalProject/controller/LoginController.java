@@ -101,7 +101,7 @@ public class LoginController {
         } else if (roles.contains("ROLE_COLLECTOR")) {
             return "redirect:/collector/dashboard";}
         else if (roles.contains("ROLE_CITIZEN")) {
-            return "redirect:/citizen/home";
+            return "redirect:/citizen/verify";
         } else {
             return "redirect:/";
         }

@@ -1,385 +1,812 @@
 <!--<!DOCTYPE html>-->
-<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<html xmlns:th="http://www.thymeleaf.org"-->
+<!--      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"-->
+<!--      layout:decorate="~{collector/layout}">-->
 <!--<head>-->
 <!--    <title>Scan Waste Item</title>-->
-<!--    &lt;!&ndash; Include TensorFlow.js and COCO-SSD &ndash;&gt;-->
+<!--    &lt;!&ndash; TensorFlow.js and COCO-SSD for object detection &ndash;&gt;-->
 <!--    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>-->
 <!--    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>-->
 <!--    &lt;!&ndash; QR Code Library &ndash;&gt;-->
-<!--    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/qrcode.js/qrcode.min.js"></script>-->
+<!--    <style>-->
+<!--        .scan-container {-->
+<!--            max-width: 700px;-->
+<!--            margin: 0 auto;-->
+<!--            padding: 20px;-->
+<!--        }-->
+<!--        .webcam-container {-->
+<!--            position: relative;-->
+<!--            margin-bottom: 20px;-->
+<!--            width: 100%;-->
+<!--            max-width: 640px;-->
+<!--        }-->
+<!--        #webcam, #canvas {-->
+<!--            width: 100%;-->
+<!--            max-width: 640px;-->
+<!--            border-radius: 8px;-->
+<!--            border: 1px solid #ddd;-->
+<!--        }-->
+<!--        #canvas {-->
+<!--            position: absolute;-->
+<!--            top: 0;-->
+<!--            left: 0;-->
+<!--        }-->
+<!--        .status-box {-->
+<!--            margin-top: 15px;-->
+<!--            padding: 15px;-->
+<!--            border-radius: 8px;-->
+<!--            background-color: #f8f9fa;-->
+<!--        }-->
+<!--        .detection-success {-->
+<!--            background-color: #d4edda;-->
+<!--            border: 1px solid #c3e6cb;-->
+<!--            color: #155724;-->
+<!--        }-->
+<!--        .detection-failure {-->
+<!--            background-color: #f8d7da;-->
+<!--            border: 1px solid #f5c6cb;-->
+<!--            color: #721c24;-->
+<!--        }-->
+<!--        #qrcode-container {-->
+<!--            display: none;-->
+<!--            position: absolute;-->
+<!--            top: 0;-->
+<!--            left: 0;-->
+<!--            width: 100%;-->
+<!--            height: 100%;-->
+<!--            background-color: white;-->
+<!--            border-radius: 8px;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            flex-direction: column;-->
+<!--        }-->
+<!--        #qrcode {-->
+<!--            text-align: center;-->
+<!--        }-->
+<!--        .reward-info {-->
+<!--            text-align: center;-->
+<!--            margin-top: 20px;-->
+<!--            font-size: 18px;-->
+<!--            font-weight: bold;-->
+<!--        }-->
+<!--        .btn-scan {-->
+<!--            margin-top: 10px;-->
+<!--            padding: 10px 20px;-->
+<!--            background-color: #28a745;-->
+<!--            color: white;-->
+<!--            border: none;-->
+<!--            border-radius: 4px;-->
+<!--            cursor: pointer;-->
+<!--        }-->
+<!--        .btn-scan:hover {-->
+<!--            background-color: #218838;-->
+<!--        }-->
+<!--        .btn-rescan {-->
+<!--            margin-top: 10px;-->
+<!--            padding: 10px 20px;-->
+<!--            background-color: #007bff;-->
+<!--            color: white;-->
+<!--            border: none;-->
+<!--            border-radius: 4px;-->
+<!--            cursor: pointer;-->
+<!--        }-->
+<!--        .btn-rescan:hover {-->
+<!--            background-color: #0069d9;-->
+<!--        }-->
+<!--        .bin-info {-->
+<!--            margin-bottom: 20px;-->
+<!--            padding: 15px;-->
+<!--            background-color: #e9ecef;-->
+<!--            border-radius: 8px;-->
+<!--        }-->
+<!--    </style>-->
 <!--</head>-->
 <!--<body>-->
+<!--<div layout:fragment="content">-->
+<!--    <div class="scan-container">-->
+<!--        <div class="bin-info">-->
+<!--            <h2>Scan Waste Item</h2>-->
+<!--            <p><strong>Bin ID:</strong> <span th:text="${bin.id}"></span></p>-->
+<!--            <p><strong>Location:</strong> <span th:text="'Lat: ' + ${bin.latitude} + ', Long: ' + ${bin.longitude}"></span></p>-->
+<!--            <p><strong>Current Fill Level:</strong> <span th:text="${bin.fillLevel}"></span>%</p>-->
+<!--            <p><strong>Status:</strong> <span th:text="${bin.status}"></span></p>-->
+<!--        </div>-->
 
+<!--        <div class="webcam-container">-->
+<!--            <video id="webcam" width="640" height="480" autoplay></video>-->
+<!--            <canvas id="canvas" width="640" height="480"></canvas>-->
+<!--            <div id="qrcode-container">-->
+<!--                <h3>Scan QR Code to Claim Tokens</h3>-->
+<!--                <div id="qrcode"></div>-->
+<!--                <div class="reward-info">-->
+<!--                    <p id="item-type">Verification Code: </p>-->
+<!--                    <p id="token-amount">Reward: </p>-->
+<!--                </div>-->
+<!--                <button id="rescanButton" class="btn-rescan">Scan Another Item</button>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        <div id="result" class="status-box">-->
+<!--            <p>Press "Start Scanning" to activate the camera and begin detection.</p>-->
+<!--        </div>-->
+
+<!--        <button id="scanButton" class="btn-scan">Start Scanning</button>-->
+<!--        <a th:href="@{/collector/bins}" class="btn btn-secondary mt-3">Back to Bins</a>-->
+<!--    </div>-->
+
+<!--    <script th:inline="javascript">-->
+<!--        // Get bin ID from Thymeleaf context-->
+<!--        const binId = [[${bin.id}]];-->
+<!--        let model = null;-->
+<!--        let isScanning = false;-->
+<!--        let detectionInterval = null;-->
+<!--        let stream = null;-->
+
+<!--        // Load COCO-SSD model-->
+<!--        async function loadModel() {-->
+<!--            try {-->
+<!--                document.getElementById('result').innerHTML = '<p>Loading model, please wait...</p>';-->
+<!--                model = await cocoSsd.load();-->
+<!--                document.getElementById('result').innerHTML = '<p>Model loaded! Ready to detect waste items.</p>';-->
+<!--                console.log("Model loaded successfully!");-->
+<!--                return true;-->
+<!--            } catch (error) {-->
+<!--                document.getElementById('result').innerHTML = '<p>Error loading model: ' + error.message + '</p>';-->
+<!--                console.error("Failed to load model:", error);-->
+<!--                return false;-->
+<!--            }-->
+<!--        }-->
+
+<!--        // Start webcam-->
+<!--        async function startWebcam() {-->
+<!--            const video = document.getElementById('webcam');-->
+<!--            try {-->
+<!--                stream = await navigator.mediaDevices.getUserMedia({-->
+<!--                    video: { facingMode: 'environment' } // Use back camera on mobile-->
+<!--                });-->
+<!--                video.srcObject = stream;-->
+<!--                return new Promise((resolve) => {-->
+<!--                    video.onloadedmetadata = () => {-->
+<!--                        resolve(true);-->
+<!--                    };-->
+<!--                });-->
+<!--            } catch (error) {-->
+<!--                document.getElementById('result').innerHTML = '<p>Camera access error: ' + error.message + '</p>';-->
+<!--                console.error("Camera access error:", error);-->
+<!--                return false;-->
+<!--            }-->
+<!--        }-->
+
+<!--        // Stop webcam-->
+<!--        function stopWebcam() {-->
+<!--            if (stream) {-->
+<!--                stream.getTracks().forEach(track => track.stop());-->
+<!--            }-->
+<!--        }-->
+
+<!--        // Detect objects-->
+<!--        async function detect() {-->
+<!--            if (!model || !isScanning) return;-->
+
+<!--            const video = document.getElementById('webcam');-->
+<!--            const canvas = document.getElementById('canvas');-->
+<!--            const ctx = canvas.getContext('2d');-->
+<!--            const resultDiv = document.getElementById('result');-->
+
+<!--            // Draw video frame on canvas-->
+<!--            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);-->
+
+<!--            try {-->
+<!--                // Get predictions-->
+<!--                const predictions = await model.detect(canvas);-->
+
+<!--                // Clear previous drawings-->
+<!--                ctx.clearRect(0, 0, canvas.width, canvas.height);-->
+<!--                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);-->
+
+<!--                // Draw bounding boxes for all detected objects-->
+<!--                predictions.forEach(prediction => {-->
+<!--                    // Draw bounding box-->
+<!--                    const [x, y, width, height] = prediction.bbox;-->
+<!--                    ctx.strokeStyle = prediction.class === 'bottle' ? '#00FF00' : '#FF0000';-->
+<!--                    ctx.lineWidth = 3;-->
+<!--                    ctx.strokeRect(x, y, width, height);-->
+
+<!--                    // Draw label-->
+<!--                    ctx.fillStyle = prediction.class === 'bottle' ? '#00FF00' : '#FF0000';-->
+<!--                    ctx.font = '18px Arial';-->
+<!--                    ctx.fillText(-->
+<!--                        `${prediction.class}: ${Math.round(prediction.score * 100)}%`,-->
+<!--                        x, y > 20 ? y - 5 : y + 20-->
+<!--                    );-->
+<!--                });-->
+
+<!--                // Check for recyclable items-->
+<!--                const detectedBottle = predictions.find(p => p.class === 'bottle' && p.score > 0.7);-->
+<!--                const detectedOtherRecyclable = predictions.find(p =>-->
+<!--                    ['cup', 'can', 'cell phone', 'book', 'paper'].includes(p.class) && p.score > 0.7);-->
+
+<!--                if (detectedBottle) {-->
+<!--                    // Stop scanning-->
+<!--                    clearInterval(detectionInterval);-->
+<!--                    isScanning = false;-->
+
+<!--                    // Update UI-->
+<!--                    resultDiv.className = 'status-box detection-success';-->
+<!--                    resultDiv.innerHTML = `-->
+<!--                        <h3>Recyclable Item Detected!</h3>-->
+<!--                        <p>Type: Plastic Bottle</p>-->
+<!--                        <p>Confidence: ${Math.round(detectedBottle.score * 100)}%</p>-->
+<!--                        <p>Generating verification code...</p>-->
+<!--                    `;-->
+
+<!--                    // Fetch verification code-->
+<!--                    try {-->
+<!--                        const response = await fetch(`/collector/marks-empty/${binId}`, {-->
+<!--                            method: 'POST',-->
+<!--                            headers: { 'Content-Type': 'application/json' }-->
+<!--                        });-->
+<!--                        const data = await response.json();-->
+<!--                        generateQRCode(data.verificationCode, 50); // 50 tokens for bottles-->
+<!--                    } catch (error) {-->
+<!--                        console.error("Error:", error);-->
+<!--                    }-->
+
+<!--                    // Update button text-->
+<!--                    document.getElementById('scanButton').textContent = 'Start Scanning';-->
+
+<!--                } else if (detectedOtherRecyclable) {-->
+<!--                    // Stop scanning-->
+<!--                    clearInterval(detectionInterval);-->
+<!--                    isScanning = false;-->
+
+<!--                    // Update UI-->
+<!--                    resultDiv.className = 'status-box detection-success';-->
+<!--                    resultDiv.innerHTML = `-->
+<!--                        <h3>Recyclable Item Detected!</h3>-->
+<!--                        <p>Type: ${detectedOtherRecyclable.class}</p>-->
+<!--                        <p>Confidence: ${Math.round(detectedOtherRecyclable.score * 100)}%</p>-->
+<!--                        <p>Generating verification code...</p>-->
+<!--                    `;-->
+
+<!--                    // Fetch verification code-->
+<!--                    try {-->
+<!--                        const response = await fetch(`/collector/marks-empty/${binId}`, {-->
+<!--                            method: 'POST',-->
+<!--                            headers: { 'Content-Type': 'application/json' }-->
+<!--                        });-->
+<!--                        const data = await response.json();-->
+<!--                        generateQRCode(data.verificationCode, 20); // 20 tokens for others-->
+<!--                    } catch (error) {-->
+<!--                        console.error("Error:", error);-->
+<!--                    }-->
+
+<!--                    // Update button text-->
+<!--                    document.getElementById('scanButton').textContent = 'Start Scanning';-->
+
+<!--                } else {-->
+<!--                    resultDiv.className = 'status-box';-->
+<!--                    resultDiv.innerHTML = '<p>Scanning for recyclable items...</p>';-->
+<!--                }-->
+<!--            } catch (error) {-->
+<!--                console.error("Detection error:", error);-->
+<!--            }-->
+<!--        }-->
+
+<!--        // Generate QR Code-->
+<!--        function generateQRCode(verificationCode, tokenAmount) {-->
+<!--            const qrDiv = document.getElementById('qrcode');-->
+<!--            qrDiv.innerHTML = '';-->
+
+<!--            const qrData = JSON.stringify({-->
+<!--                verificationCode: verificationCode,-->
+<!--                binId: binId,-->
+<!--                tokens: tokenAmount,-->
+<!--                timestamp: new Date().toISOString()-->
+<!--            });-->
+
+<!--            new QRCode(qrDiv, {-->
+<!--                text: qrData,-->
+<!--                width: 200,-->
+<!--                height: 200-->
+<!--            });-->
+
+<!--            document.getElementById('item-type').textContent = `Verification Code: ${verificationCode}`;-->
+<!--            document.getElementById('token-amount').textContent = `Reward: ${tokenAmount} Tokens`;-->
+
+<!--            // Toggle visibility-->
+<!--            document.getElementById('webcam').style.display = 'none';-->
+<!--            document.getElementById('canvas').style.display = 'none';-->
+<!--            document.getElementById('qrcode-container').style.display = 'flex';-->
+<!--            stopWebcam();-->
+<!--        }-->
+
+<!--        // Toggle scanning-->
+<!--        document.getElementById('scanButton').addEventListener('click', async () => {-->
+<!--            const button = document.getElementById('scanButton');-->
+
+<!--            if (!isScanning) {-->
+<!--                button.textContent = 'Initializing...';-->
+<!--                button.disabled = true;-->
+
+<!--                // Hide QR code and show webcam-->
+<!--                document.getElementById('webcam').style.display = 'block';-->
+<!--                document.getElementById('canvas').style.display = 'block';-->
+<!--                document.getElementById('qrcode-container').style.display = 'none';-->
+
+<!--                // Load model and start webcam-->
+<!--                const modelLoaded = await loadModel();-->
+<!--                const webcamStarted = await startWebcam();-->
+
+<!--                if (modelLoaded && webcamStarted) {-->
+<!--                    isScanning = true;-->
+<!--                    button.textContent = 'Stop Scanning';-->
+<!--                    button.disabled = false;-->
+<!--                    detectionInterval = setInterval(detect, 1000); // Detect every second-->
+<!--                } else {-->
+<!--                    button.textContent = 'Start Scanning';-->
+<!--                    button.disabled = false;-->
+<!--                }-->
+<!--            } else {-->
+<!--                // Stop scanning-->
+<!--                isScanning = false;-->
+<!--                clearInterval(detectionInterval);-->
+<!--                button.textContent = 'Start Scanning';-->
+
+<!--                // Stop webcam-->
+<!--                stopWebcam();-->
+
+<!--                // Clear canvas-->
+<!--                const canvas = document.getElementById('canvas');-->
+<!--                const ctx = canvas.getContext('2d');-->
+<!--                ctx.clearRect(0, 0, canvas.width, canvas.height);-->
+
+<!--                document.getElementById('result').className = 'status-box';-->
+<!--                document.getElementById('result').innerHTML = '<p>Scanning stopped. Press "Start Scanning" to begin again.</p>';-->
+<!--            }-->
+<!--        });-->
+
+<!--        // Re-scan button-->
+<!--        document.getElementById('rescanButton').addEventListener('click', async () => {-->
+<!--            // Hide QR code-->
+<!--            document.getElementById('qrcode-container').style.display = 'none';-->
+
+<!--            // Reset the scan button to initial state-->
+<!--            document.getElementById('scanButton').click();-->
+<!--        });-->
+<!--    </script>-->
+<!--</div>-->
+<!--</body>-->
+<!--</html>-->
+
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<head>-->
+<!--    <title>Scan Waste Item</title>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>-->
+<!--    <style>-->
+<!--        #verificationSection { display: none; }-->
+<!--        #scanButton { margin: 10px 0; }-->
+<!--        #webcam { border: 2px solid #ddd; }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--&lt;!&ndash;<div th:replace="fragments/header :: header"></div>&ndash;&gt;-->
 
 <!--<div class="container">-->
-<!--    <h2>Scan Waste Item for Bin: <span th:text="${bin.id}"></span></h2>-->
+<!--    <h2>Scan Waste for Bin #[[${bin.id}]]</h2>-->
 
-<!--    &lt;!&ndash; Webcam Feed &ndash;&gt;-->
+<!--    &lt;!&ndash; Camera Feed &ndash;&gt;-->
 <!--    <video id="webcam" width="640" height="480" autoplay></video>-->
-<!--    <canvas id="canvas" width="640" height="480"></canvas>-->
+<!--    <button id="scanButton" class="btn btn-primary">Start Scan</button>-->
 
-<!--    &lt;!&ndash; Detection Result &ndash;&gt;-->
-<!--    <div id="result" class="mt-3"></div>-->
-
-<!--    &lt;!&ndash; QR Code Display &ndash;&gt;-->
-<!--    <div id="qrcode" class="mt-3"></div>-->
-
-<!--    <button id="scanButton" class="btn btn-primary">Start Scanning</button>-->
+<!--    &lt;!&ndash; Scan Results &ndash;&gt;-->
+<!--    <div id="scanResults" class="mt-3">-->
+<!--        <p>Detection Status: <span id="detectionStatus">Not scanned</span></p>-->
+<!--        <div id="verificationSection">-->
+<!--            <h4>Verification Code:</h4>-->
+<!--            <h3 id="verificationCode" style="color: green;">[[${verificationCode}]]</h3>-->
+<!--            <p>Provide this code to the citizen for verification</p>-->
+<!--        </div>-->
+<!--    </div>-->
 <!--</div>-->
 
 <!--<script>-->
 <!--    let model = null;-->
-<!--    let binId = /* Extract bin ID from Thymeleaf */ [[${bin.id}]];-->
+<!--    let isScanning = false;-->
+<!--    const video = document.getElementById('webcam');-->
+<!--    const scanButton = document.getElementById('scanButton');-->
+<!--    let verificationCode = "[[${verificationCode}]]";-->
 
 <!--    // Load COCO-SSD model-->
-<!--    async function loadModel() {-->
-<!--        model = await cocoSsd.load();-->
-<!--        console.log("Model loaded!");-->
-<!--    }-->
+<!--    cocoSsd.load().then(loadedModel => {-->
+<!--        model = loadedModel;-->
+<!--        scanButton.disabled = false;-->
+<!--    });-->
 
 <!--    // Start webcam-->
-<!--    async function startWebcam() {-->
-<!--        const video = document.getElementById('webcam');-->
-<!--        const stream = await navigator.mediaDevices.getUserMedia({ video: true });-->
-<!--        video.srcObject = stream;-->
-<!--    }-->
+<!--    navigator.mediaDevices.getUserMedia({ video: true })-->
+<!--        .then(stream => video.srcObject = stream);-->
 
-<!--    // Detect objects-->
-<!--    async function detect() {-->
-<!--        const video = document.getElementById('webcam');-->
-<!--        const canvas = document.getElementById('canvas');-->
-<!--        const ctx = canvas.getContext('2d');-->
+<!--    // Scan handler-->
+<!--    scanButton.addEventListener('click', async () => {-->
+<!--        if (!isScanning) {-->
+<!--            isScanning = true;-->
+<!--            scanButton.textContent = 'Scanning...';-->
 
-<!--        ctx.drawImage(video, 0, 0, 640, 480);-->
-<!--        const predictions = await model.detect(canvas);-->
+<!--            const predictions = await model.detect(video);-->
+<!--            const isPlasticBottle = predictions.some(p =>-->
+<!--                p.class === 'bottle' && p.score > 0.7-->
+<!--            );-->
 
-<!--        // Check for "bottle" class-->
-<!--        const isPlasticBottle = predictions.some(p => p.class === 'bottle');-->
-<!--        const resultDiv = document.getElementById('result');-->
+<!--            if (isPlasticBottle) {-->
+<!--                // Stop webcam-->
+<!--                video.srcObject.getTracks().forEach(track => track.stop());-->
 
-<!--        if (isPlasticBottle) {-->
-<!--            resultDiv.innerHTML = "<h3 class='text-success'>Plastic Bottle Detected!</h3>";-->
-<!--            generateQRCode();-->
-<!--            updateBinFillLevel();-->
-<!--        } else {-->
-<!--            resultDiv.innerHTML = "<h3 class='text-danger'>Not a Plastic Bottle</h3>";-->
+<!--                // Show verification section-->
+<!--                document.getElementById('verificationSection').style.display = 'block';-->
+<!--                document.getElementById('detectionStatus').textContent =-->
+<!--                    'Plastic Bottle Detected ✅';-->
+<!--                scanButton.style.display = 'none';-->
+<!--            } else {-->
+<!--                document.getElementById('detectionStatus').textContent =-->
+<!--                    'No Plastic Bottle Detected ❌';-->
+<!--                isScanning = false;-->
+<!--                scanButton.textContent = 'Retry Scan';-->
+<!--            }-->
 <!--        }-->
-<!--    }-->
-
-<!--    // Generate QR Code-->
-<!--    function generateQRCode() {-->
-<!--        const qrDiv = document.getElementById('qrcode');-->
-<!--        qrDiv.innerHTML = '';-->
-<!--        new QRCode(qrDiv, {-->
-<!--            text: `WasteItem: Plastic Bottle, BinID: ${binId}, Timestamp: ${new Date().toISOString()}`,-->
-<!--            width: 128,-->
-<!--            height: 128-->
-<!--        });-->
-<!--    }-->
-
-<!--    // Send data to server to update fill level-->
-<!--    async function updateBinFillLevel() {-->
-<!--        await fetch(`/api/bins/${binId}/increment-fill?amount=5`, { method: 'POST' });-->
-<!--    }-->
-
-<!--    // Initialize-->
-<!--    document.getElementById('scanButton').addEventListener('click', async () => {-->
-<!--        await loadModel();-->
-<!--        await startWebcam();-->
-<!--        setInterval(detect, 2000); // Detect every 2 seconds-->
 <!--    });-->
 <!--</script>-->
 <!--</body>-->
 <!--</html>-->
 
+
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{collector/layout}">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Scan Waste Item</title>
-    <!-- TensorFlow.js and COCO-SSD for object detection -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-    <!-- QR Code Library -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode.js/qrcode.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Citizen Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        .scan-container {
-            max-width: 700px;
-            margin: 0 auto;
-            padding: 20px;
+        :root {
+            --sidebar-bg: rgb(30, 194, 77);
+            --sidebar-text: #f8fafc;
+            --primary-purple: #6366f1;
+            --primary-blue: #38bdf8;
+            --primary-orange: #fb923c;
+            --primary-pink: #ec4899;
+            --succeed-green: #86efac;
+            --waiting-orange: #fed7aa;
+            --canceled-red: #fda4af;
         }
-        .webcam-container {
-            position: relative;
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #334155;
+        }
+
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            height: 100vh;
+            position: fixed;
+            width: 180px;
+            z-index: 1000;
+        }
+
+        .logo {
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo img {
+            width: 70px;
+        }
+
+        .sidebar-menu {
+            padding: 0;
+            list-style: none;
+        }
+
+        .sidebar-section {
+            padding: 15px 15px 5px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .sidebar-menu li a {
+            color: var(--sidebar-text);
+            text-decoration: none;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .sidebar-menu li a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-menu li a.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--primary-purple);
+        }
+
+        .sidebar-menu li a i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            margin-left: 180px;
+            padding: 15px;
+        }
+
+        .top-bar {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
             margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
-        #webcam, #canvas {
+
+        .breadcrumb {
+            margin-bottom: 0;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-profile img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+
+        .user-info small {
+            display: block;
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+
+        .table-container {
+            background-color: white;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .table th {
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-purple);
+            border-color: var(--primary-purple);
+        }
+
+        .btn-primary:hover {
+            background-color: #4f46e5;
+            border-color: #4f46e5;
+        }
+
+        .pagination {
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination a {
+            margin: 0 5px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: var(--primary-purple);
+            text-decoration: none;
+        }
+
+        .pagination a.current-page {
+            background-color: var(--primary-purple);
+            color: white;
+        }
+
+        .scan-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 25px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #webcam {
             width: 100%;
             max-width: 640px;
             border-radius: 8px;
-            border: 1px solid #ddd;
+            border: 2px solid #e0e0e0;
         }
-        #canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        .status-box {
-            margin-top: 15px;
+
+        .scan-status {
             padding: 15px;
+            margin: 20px 0;
             border-radius: 8px;
-            background-color: #f8f9fa;
+            background: #f8f9fa;
         }
-        .detection-success {
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-        .detection-failure {
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-        #qrcode {
+
+        .verification-section {
+            display: none;
+            padding: 20px;
+            background: #e8f5e9;
+            border-radius: 8px;
             margin-top: 20px;
-            text-align: center;
-        }
-        .btn-scan {
-            margin-top: 10px;
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .btn-scan:hover {
-            background-color: #218838;
-        }
-        .bin-info {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #e9ecef;
-            border-radius: 8px;
         }
     </style>
 </head>
 <body>
-<div layout:fragment="content">
-    <div class="scan-container">
-        <div class="bin-info">
-            <h2>Scan Waste Item</h2>
-            <p><strong>Bin ID:</strong> <span th:text="${bin.id}"></span></p>
-            <p><strong>Location:</strong> <span th:text="'Lat: ' + ${bin.latitude} + ', Long: ' + ${bin.longitude}"></span></p>
-            <p><strong>Current Fill Level:</strong> <span th:text="${bin.fillLevel}"></span>%</p>
-            <p><strong>Status:</strong> <span th:text="${bin.status}"></span></p>
-        </div>
-
-        <div class="webcam-container">
-            <video id="webcam" width="640" height="480" autoplay></video>
-            <canvas id="canvas" width="640" height="480"></canvas>
-        </div>
-
-        <div id="result" class="status-box">
-            <p>Press "Start Scanning" to activate the camera and begin detection.</p>
-        </div>
-
-        <div id="qrcode"></div>
-
-        <button id="scanButton" class="btn-scan">Start Scanning</button>
-        <a th:href="@{/collector/bins}" class="btn btn-secondary mt-3">Back to Bins</a>
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="/api/placeholder/100/40" alt="Admin Logo">
     </div>
 
-    <script th:inline="javascript">
-        // Get bin ID from Thymeleaf context
-        const binId = [[${bin.id}]];
-        let model = null;
-        let isScanning = false;
-        let detectionInterval = null;
-
-        // Load COCO-SSD model
-        async function loadModel() {
-            try {
-                document.getElementById('result').innerHTML = '<p>Loading model, please wait...</p>';
-                model = await cocoSsd.load();
-                document.getElementById('result').innerHTML = '<p>Model loaded! Ready to detect waste items.</p>';
-                console.log("Model loaded successfully!");
-                return true;
-            } catch (error) {
-                document.getElementById('result').innerHTML = '<p>Error loading model: ' + error.message + '</p>';
-                console.error("Failed to load model:", error);
-                return false;
-            }
-        }
-
-        // Start webcam
-        async function startWebcam() {
-            const video = document.getElementById('webcam');
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' } // Use back camera on mobile
-                });
-                video.srcObject = stream;
-                return new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        resolve(true);
-                    };
-                });
-            } catch (error) {
-                document.getElementById('result').innerHTML = '<p>Camera access error: ' + error.message + '</p>';
-                console.error("Camera access error:", error);
-                return false;
-            }
-        }
-
-        // Detect objects
-        async function detect() {
-            if (!model || !isScanning) return;
-
-            const video = document.getElementById('webcam');
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-            const resultDiv = document.getElementById('result');
-
-            // Draw video frame on canvas
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            try {
-                // Get predictions
-                const predictions = await model.detect(canvas);
-
-                // Clear previous drawings
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                // Draw bounding boxes for all detected objects
-                predictions.forEach(prediction => {
-                    // Draw bounding box
-                    const [x, y, width, height] = prediction.bbox;
-                    ctx.strokeStyle = prediction.class === 'bottle' ? '#00FF00' : '#FF0000';
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(x, y, width, height);
-
-                    // Draw label
-                    ctx.fillStyle = prediction.class === 'bottle' ? '#00FF00' : '#FF0000';
-                    ctx.font = '18px Arial';
-                    ctx.fillText(
-                        `${prediction.class}: ${Math.round(prediction.score * 100)}%`,
-                        x, y > 20 ? y - 5 : y + 20
-                    );
-                });
-
-                // Check for recyclable items (focusing on bottle for this example)
-                const detectedBottle = predictions.find(p => p.class === 'bottle' && p.score > 0.7);
-
-                if (detectedBottle) {
-                    resultDiv.className = 'status-box detection-success';
-                    resultDiv.innerHTML = `
-                            <h3>Recyclable Item Detected!</h3>
-                            <p>Type: Plastic Bottle</p>
-                            <p>Confidence: ${Math.round(detectedBottle.score * 100)}%</p>
-                            <p>Adding to bin fill level...</p>
-                        `;
-                    generateQRCode();
-                    await updateBinFillLevel();
-
-                    // Pause detection for 3 seconds after successful detection
-                    isScanning = false;
-                    setTimeout(() => {
-                        isScanning = true;
-                    }, 3000);
-                } else {
-                    resultDiv.className = 'status-box';
-                    resultDiv.innerHTML = '<p>Scanning for recyclable items...</p>';
-                }
-            } catch (error) {
-                console.error("Detection error:", error);
-            }
-        }
-
-        // Generate QR Code
-        function generateQRCode() {
-            const qrDiv = document.getElementById('qrcode');
-            qrDiv.innerHTML = '';
-
-            const qrData = JSON.stringify({
-                item: 'Plastic Bottle',
-                binId: binId,
-                timestamp: new Date().toISOString()
-            });
-
-            new QRCode(qrDiv, {
-                text: qrData,
-                width: 128,
-                height: 128
-            });
-        }
-
-        // Send data to server to update fill level
-        async function updateBinFillLevel() {
-            try {
-                const response = await fetch(`/api/bins/${binId}/increment-fill?amount=5`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // Include CSRF token if your Spring Security requires it
-                        // 'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').getAttribute('content')
-                    }
-                });
-
-                if (response.ok) {
-                    console.log("Fill level updated successfully");
-                } else {
-                    console.error("Failed to update fill level:", await response.text());
-                }
-            } catch (error) {
-                console.error("Error updating fill level:", error);
-            }
-        }
-
-        // Toggle scanning
-        document.getElementById('scanButton').addEventListener('click', async () => {
-            const button = document.getElementById('scanButton');
-
-            if (!isScanning) {
-                button.textContent = 'Initializing...';
-                button.disabled = true;
-
-                // Load model and start webcam
-                const modelLoaded = await loadModel();
-                const webcamStarted = await startWebcam();
-
-                if (modelLoaded && webcamStarted) {
-                    isScanning = true;
-                    button.textContent = 'Stop Scanning';
-                    button.disabled = false;
-                    detectionInterval = setInterval(detect, 1000); // Detect every second
-                } else {
-                    button.textContent = 'Start Scanning';
-                    button.disabled = false;
-                }
-            } else {
-                // Stop scanning
-                isScanning = false;
-                clearInterval(detectionInterval);
-                button.textContent = 'Start Scanning';
-
-                // Stop webcam
-                const video = document.getElementById('webcam');
-                if (video.srcObject) {
-                    video.srcObject.getTracks().forEach(track => track.stop());
-                }
-
-                // Clear canvas
-                const canvas = document.getElementById('canvas');
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                document.getElementById('result').className = 'status-box';
-                document.getElementById('result').innerHTML = '<p>Scanning stopped. Press "Start Scanning" to begin again.</p>';
-            }
-        });
-    </script>
+    <div class="sidebar-section">GENERAL</div>
+    <ul class="sidebar-menu">
+        <li>
+            <a href="/collector/dashboard">
+                <i class="fas fa-th-large sidebar-icon"></i> Dashboard
+            </a>
+        </li>
+        <li>
+            <a href="/collector/bins" class="active">
+                <i class="fas fa-users sidebar-icon"></i> All Bins
+            </a>
+        </li>
+        <li>
+            <a href="/collector/bins/add">
+                <i class="fas fa-cog sidebar-icon"></i> New Bin
+            </a>
+        </li>
+    </ul>
 </div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="d-flex align-items-center">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="#"><i class="fas fa-home"></i></a></li>
+                <li class="breadcrumb-item"><a href="#">Admin</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Citizen Management</li>
+            </ol>
+        </div>
+
+        <div class="user-profile dropdown">
+            <div class="d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                <div class="user-info me-2 text-end">
+                    <span class="d-block fw-bold">Admin</span>
+                    <small>Super Admin</small>
+                </div>
+                <img src="/api/placeholder/80/80" alt="User">
+            </div>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" th:href="@{/logout}"><i class="fas fa-sign-out-alt me-2"></i>Log Out</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Scan Container -->
+    <div class="scan-container">
+        <h3 class="mb-4">Scan Waste for Bin #[[${bin.id}]]</h3>
+
+        <!-- Camera Feed -->
+        <div class="position-relative">
+            <video id="webcam" width="640" height="480" autoplay></video>
+            <div class="mt-3">
+                <button id="scanButton" class="btn btn-lg btn-success">
+                    <i class="fas fa-camera me-2"></i>Start Scan
+                </button>
+            </div>
+        </div>
+
+        <!-- Scan Results -->
+        <div class="scan-status">
+            <h5 class="mb-3">Detection Status</h5>
+            <p id="detectionStatus" class="mb-1">Ready to scan</p>
+            <div class="progress mt-2" style="height: 8px;">
+                <div id="scanProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Verification Section -->
+        <div id="verificationSection" class="verification-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="text-success mb-1">Verification Successful!</h4>
+                    <p class="mb-0">Verification Code:
+                        <strong id="verificationCode">[[${verificationCode}]]</strong>
+                    </p>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm"
+                        onclick="location.reload()">
+                    <i class="fas fa-redo me-1"></i>New Scan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+<script>
+    let model = null;
+    let isScanning = false;
+    const video = document.getElementById('webcam');
+    const scanButton = document.getElementById('scanButton');
+
+    // Initialize Model
+    cocoSsd.load().then(loadedModel => {
+        model = loadedModel;
+        scanButton.disabled = false;
+    });
+
+    // Start Webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => video.srcObject = stream)
+        .catch(error => {
+            document.getElementById('detectionStatus').textContent =
+                'Camera access error: ' + error.message;
+        });
+
+    // Scan Handler
+    scanButton.addEventListener('click', async () => {
+        if (!isScanning) {
+            isScanning = true;
+            scanButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Scanning...';
+            document.getElementById('scanProgress').style.width = '0%';
+
+            const predictions = await model.detect(video);
+            const bottleDetection = predictions.find(p =>
+                p.class === 'bottle' && p.score > 0.7
+            );
+
+            if (bottleDetection) {
+                document.getElementById('verificationSection').style.display = 'block';
+                document.getElementById('detectionStatus').textContent =
+                    'Plastic Bottle Detected ✅';
+                document.getElementById('scanProgress').style.width = '100%';
+                video.style.opacity = '0.5';
+            } else {
+                document.getElementById('detectionStatus').textContent =
+                    'No Recyclables Detected ❌';
+                document.getElementById('scanProgress').style.width = '30%';
+            }
+
+            isScanning = false;
+            scanButton.innerHTML = '<i class="fas fa-camera me-2"></i>Start Scan';
+        }
+    });
+</script>
 </body>
 </html>

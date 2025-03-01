@@ -1,11 +1,7 @@
 package com.finalProject.controller;
 
-import com.finalProject.model.Citizen;
-import com.finalProject.model.CollectionRequest;
-import com.finalProject.model.SmartBin;
-import com.finalProject.service.CitizenService;
-import com.finalProject.service.SmartBinService;
-import com.finalProject.service.CollectionRequestService;
+import com.finalProject.model.*;
+import com.finalProject.service.*;
 import com.finalProject.util.ImageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -17,8 +13,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 @Controller
 @RequestMapping("/collector")
@@ -27,14 +27,18 @@ public class CollectorController {
     private final SmartBinService smartBinService;
     private final CollectionRequestService collectionRequestService;
     private final CitizenService citizenService; // Add this
+    private final VerificationCodeService verificationCodeService;
+    private final WasteItemService wasteItemService;
 
     @Autowired
-    public CollectorController(SmartBinService smartBinService,
+    public CollectorController(SmartBinService smartBinService, WasteItemService wasteItemService,
                                CollectionRequestService collectionRequestService,
-                               CitizenService citizenService) { // Add this parameter
+                               CitizenService citizenService, VerificationCodeService verificationCodeService) { // Add this parameter
         this.smartBinService = smartBinService;
         this.collectionRequestService = collectionRequestService;
         this.citizenService = citizenService; // Initialize
+        this.verificationCodeService = verificationCodeService;
+        this.wasteItemService = wasteItemService;
     }
 
     @GetMapping("/dashboard")
@@ -177,32 +181,119 @@ public class CollectorController {
     }
 
     // Scan Waste Item for a Bin
-    @GetMapping("/bins/scan/{id}")
-    public String showScanPage(@PathVariable Long id, Model model) {
+//    @GetMapping("/bins/scan/{id}")
+//    public String showScanPage(@PathVariable Long id, Model model) {
+//        model.addAttribute("bin", smartBinService.getSmartBinById(id));
+//        return "collector/scan";
+//    }
+
+    // Scan waste for a bin
+    @GetMapping("/scan/{id}")
+    public String showScanner(@PathVariable Long id, Model model) {
+        String verificationCode = verificationCodeService.generateCode();
         model.addAttribute("bin", smartBinService.getSmartBinById(id));
+        model.addAttribute("verificationCode", verificationCode);
         return "collector/scan";
     }
 
-    // API to increment fill level
-    @PostMapping("/api/bins/{id}/increment-fill")
-    @ResponseBody
-    public ResponseEntity<String> incrementFillLevel(
-            @PathVariable Long id,
-            @RequestParam int amount
-    ) {
-        SmartBin bin = smartBinService.getSmartBinById(id);
-        bin.setFillLevel(bin.getFillLevel() + amount);
-        smartBinService.updateSmartBin(id, bin);
+    // Verify code and save waste item
+    @PostMapping("/verify/{id}")
+    public String verifyScan(@PathVariable Long id,
+                             @RequestParam String code,
+                             RedirectAttributes redirectAttributes) {
+        if (isValidCode(code)) {
+            WasteItem wasteItem = new WasteItem();
+            wasteItem.setClassification("PLASTIC");
+            wasteItem.setBin(smartBinService.getSmartBinById(id));
+            wasteItem.setScannedAt(LocalDateTime.now());
+            wasteItemService.saveWasteItem(wasteItem);
 
-        // Auto-create collection request if fill >85%
-        if (bin.getFillLevel() > 85) {
-            CollectionRequest request = new CollectionRequest();
-            request.setSmartBin(bin);
-            request.setStatus("PENDING");
-            request.setRequestedAt(LocalDateTime.now());
-            collectionRequestService.saveCollectionRequest(request);
+            redirectAttributes.addFlashAttribute("message", "Scan verified!");
+        } else {
+            redirectAttributes.addFlashAttribute("error", "Invalid code!");
         }
-
-        return ResponseEntity.ok("Fill level updated");
+        return "redirect:/collector/bins";
     }
+
+    private String generateVerificationCode() {
+        return String.valueOf((int) (Math.random() * 9000) + 1000); // 4-digit code
+    }
+
+    private boolean isValidCode(String code) {
+        // Implement code validation logic (e.g., check against a cache/database)
+        return true; // Simplified for example
+    }
+
+    // API to increment fill level
+//    @PostMapping("/api/bins/{id}/increment-fill")
+//    @ResponseBody
+//    public ResponseEntity<String> incrementFillLevel(
+//            @PathVariable Long id,
+//            @RequestParam int amount
+//    ) {
+//        SmartBin bin = smartBinService.getSmartBinById(id);
+//        bin.setFillLevel(bin.getFillLevel() + amount);
+//        smartBinService.updateSmartBin(id, bin);
+//
+//        // Auto-create collection request if fill >85%
+//        if (bin.getFillLevel() > 85) {
+//            CollectionRequest request = new CollectionRequest();
+//            request.setSmartBin(bin);
+//            request.setStatus("PENDING");
+//            request.setRequestedAt(LocalDateTime.now());
+//            collectionRequestService.saveCollectionRequest(request);
+//        }
+//
+//        return ResponseEntity.ok("Fill level updated");
+//    }
+
+
+//    @PostMapping("/marks-empty/{id}")
+//    public String markBinEmpty(@PathVariable Long id, Model model) {
+////        SmartBin bin = smartBinService.getSmartBinById(id);
+////        bin.setStatus("EMPTY");
+////        bin.setFillLevel(0);
+////        smartBinService.updateSmartBin(id, bin);
+//
+//        // Generate verification code (e.g., "A1B2C3")
+//        String code = generateRandomCode();
+//        VerificationCode verificationCode = new VerificationCode();
+//        verificationCode.setCode(code);
+//        verificationCode.setBinId(id);
+//        verificationCode.setTokens(50); // Adjust based on waste type
+//        verificationCode.setCreatedAt(LocalDateTime.now());
+//        verificationCode.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+//        verificationCode.setUsed(false);
+//        verificationCodeService.saveVerificationCode(verificationCode);
+//
+//        // Display code to collector
+//        model.addAttribute("verificationCode", code);
+//        return "collector/scan-success"; // New template to show the code
+//    }
+    @PostMapping("/marks-empty/{id}")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> markBinsEmpty(@PathVariable Long id) {
+        // Generate verification code
+        String code = generateRandomCode();
+        VerificationCode verificationCode = new VerificationCode();
+        verificationCode.setCode(code);
+        verificationCode.setBinId(id);
+        verificationCode.setTokens(50); // Fixed token amount for simplicity
+        verificationCode.setCreatedAt(LocalDateTime.now());
+        verificationCode.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+        verificationCode.setUsed(false);
+        verificationCodeService.saveVerificationCode(verificationCode);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("verificationCode", code);
+        return ResponseEntity.ok(response);
+    }
+
+    private String generateRandomCode() {
+        // Generate a 6-character alphanumeric code
+        return UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+    }
+
+
+
 }

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="container">
+    <h2>Redeem Verification Code</h2>
+    <form th:action="@{/citizen/redeem}" method="post">
+        <div class="mb-3">
+            <label>Verification Code</label>
+            <input type="text" class="form-control" name="code" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Redeem</button>
+    </form>
+    <div th:if="${success}" class="alert alert-success mt-3" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger mt-3" th:text="${error}"></div>
+</div>
+</body>
+</html>

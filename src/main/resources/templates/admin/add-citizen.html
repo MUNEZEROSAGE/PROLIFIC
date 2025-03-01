@@ -1,25 +1,259 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Add Citizen</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Citizen - Admin Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-bg: rgb(30, 194, 77);
+            --sidebar-text: #f8fafc;
+            --primary-purple: #6366f1;
+            --primary-blue: #38bdf8;
+            --primary-orange: #fb923c;
+            --primary-pink: #ec4899;
+            --succeed-green: #86efac;
+            --waiting-orange: #fed7aa;
+            --canceled-red: #fda4af;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #334155;
+        }
+
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            height: 100vh;
+            position: fixed;
+            width: 180px;
+            z-index: 1000;
+        }
+
+        .logo {
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo img {
+            width: 70px;
+        }
+
+        .sidebar-menu {
+            padding: 0;
+            list-style: none;
+        }
+
+        .sidebar-section {
+            padding: 15px 15px 5px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .sidebar-menu li a {
+            color: var(--sidebar-text);
+            text-decoration: none;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .sidebar-menu li a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-menu li a.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--primary-purple);
+        }
+
+        .sidebar-menu li a i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            margin-left: 180px;
+            padding: 15px;
+        }
+
+        .top-bar {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .breadcrumb {
+            margin-bottom: 0;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-profile img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+
+        .user-info small {
+            display: block;
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+
+        .form-container {
+            background-color: white;
+            border-radius: 6px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-container label {
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .form-container input,
+        .form-container select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .form-container input:focus,
+        .form-container select:focus {
+            border-color: var(--primary-purple);
+            outline: none;
+            box-shadow: 0 0 5px rgba(99, 102, 241, 0.5);
+        }
+
+        .form-container button {
+            background-color: var(--primary-purple);
+            border-color: var(--primary-purple);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .form-container button:hover {
+            background-color: #4f46e5;
+            border-color: #4f46e5;
+        }
+    </style>
 </head>
 <body>
-<form th:action="@{/admin/citizens/add}" method="post" enctype="multipart/form-data">
-    <input type="text" name="name" placeholder="Name" required>
-    <input type="email" name="email" placeholder="Email" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <input type="text" name="phoneNumber" placeholder="Phone Number">
-
-    <label>Roles:</label>
-    <select name="roles" multiple>
-        <option value="ADMIN">Admin</option>
-        <option value="COLLECTOR">Collector</option>
-    </select>
-
-    <label>Profile Picture:</label>
-    <input type="file" name="profilePicFile">
-
-    <button type="submit">Save</button>
-</form>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <img src="/api/placeholder/100/40" alt="Admin Logo">
+        </div>
+        
+        <div class="sidebar-section">GENERAL</div>
+        <ul class="sidebar-menu">
+<!--            <li>-->
+<!--                <a href="/admin/dashboard">-->
+<!--                    <i class="fas fa-th-large sidebar-icon"></i> Dashboard-->
+<!--                </a>-->
+<!--            </li>-->
+            <li>
+                <a href="/admin/citizens" class="active">
+                    <i class="fas fa-users sidebar-icon"></i> Citizens
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <i class="fas fa-cog sidebar-icon"></i> Settings
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="d-flex align-items-center">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item"><a href="#">Citizens</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Add Citizen</li>
+                </ol>
+            </div>
+            
+            <div class="user-profile dropdown">
+                <div class="d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                    <div class="user-info me-2 text-end">
+                        <span class="d-block fw-bold">Admin</span>
+                        <small>Super Admin</small>
+                    </div>
+                    <img src="/api/placeholder/80/80" alt="User">
+                </div>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" th:href="@{/logout}"><i class="fas fa-sign-out-alt me-2"></i>Log Out</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Add Citizen Form -->
+        <div class="form-container">
+            <h5 class="mb-4">Add Citizen</h5>
+            <form th:action="@{/admin/citizens/add}" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" placeholder="Name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="Email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="phoneNumber">Phone Number</label>
+                    <input type="text" id="phoneNumber" name="phoneNumber" placeholder="Phone Number">
+                </div>
+                <div class="mb-3">
+                    <label for="roles">Roles</label>
+                    <select id="roles" name="roles">
+                        <option value="">Select a role</option>
+                        <option value="ADMIN">Admin</option>
+                        <option value="COLLECTOR">Collector</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="profilePicFile">Profile Picture</label>
+                    <input type="file" id="profilePicFile" name="profilePicFile">
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

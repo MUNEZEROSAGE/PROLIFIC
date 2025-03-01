@@ -20,4 +20,9 @@ public class EcoPoints {
     private Citizen citizen;
     @OneToMany(mappedBy = "ecoPoints")
     private List<EcoPointsTransaction> transactions;
+
+    // Method to add tokens
+    public void addTokens(int tokens) {
+        this.balance += tokens;
+    }
 }

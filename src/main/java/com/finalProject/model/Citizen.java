@@ -28,7 +28,7 @@ public class Citizen {
 
     @OneToMany(mappedBy = "citizen")
     private List<WasteItem> scannedItems;
-    @OneToOne(mappedBy = "citizen")
+    @OneToOne(mappedBy = "citizen", cascade = CascadeType.ALL, orphanRemoval = true)
     private EcoPoints ecoPoints;
 
 
@@ -48,5 +48,13 @@ public class Citizen {
 
     public void removeRole(String role) {
         this.roles.remove(role);
+    }
+
+    // Method to add tokens
+    public void addEcoPoints(int tokens) {
+        if (this.ecoPoints == null) {
+            this.ecoPoints = new EcoPoints();
+        }
+        this.ecoPoints.addTokens(tokens);
     }
 }

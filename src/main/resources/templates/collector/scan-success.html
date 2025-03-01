@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="container">
+    <h2>Verification Code</h2>
+    <div class="alert alert-success">
+        <h3 th:text="'Code: ' + ${verificationCode}"></h3>
+        <p>Share this code with the citizen to claim tokens.</p>
+    </div>
+    <a th:href="@{/collector/bins}" class="btn btn-primary">Back to Bins</a>
+</div>
+</body>
+</html>

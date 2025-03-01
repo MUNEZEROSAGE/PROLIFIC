@@ -116,5 +116,26 @@ public class CitizenServiceImpl implements CitizenService {
         return citizenRepository.count();
     }
 
+    @Override
+    @Transactional
+    public void addEcoPoints(Long citizenId, int points) {
+        Citizen citizen = citizenRepository.findById(citizenId)
+                .orElseThrow(() -> new RuntimeException("Citizen not found with id: " + citizenId));
+
+        // Get or create EcoPoints for the citizen
+        EcoPoints ecoPoints = citizen.getEcoPoints();
+        if (ecoPoints == null) {
+            ecoPoints = new EcoPoints();
+            ecoPoints.setCitizen(citizen); // Set the citizen
+            citizen.setEcoPoints(ecoPoints); // Set the EcoPoints in the citizen
+        }
+
+        // Add points
+        ecoPoints.setBalance(ecoPoints.getBalance() + points);
+
+        // Save the citizen (cascade will save EcoPoints)
+        citizenRepository.save(citizen);
+    }
+
 
 }

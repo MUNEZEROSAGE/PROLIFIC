@@ -1,0 +1,103 @@
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<head>-->
+<!--    <title>Verify Code</title>-->
+<!--    <style>-->
+<!--        .alert { margin: 20px 0; padding: 15px; }-->
+<!--        .alert-success { background: #dff0d8; }-->
+<!--        .alert-error { background: #f2dede; }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--&lt;!&ndash;<div th:replace="fragments/header :: header"></div>&ndash;&gt;-->
+
+<!--<div class="container">-->
+<!--    <h2>Verify Recycling Code</h2>-->
+
+<!--    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>-->
+<!--    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>-->
+
+<!--    &lt;!&ndash; Bind the form to verificationRequest &ndash;&gt;-->
+<!--    <form th:action="@{/citizen/verify}" method="POST" th:object="${verificationRequest}">-->
+<!--        <div class="form-group">-->
+<!--            <label>Enter Verification Code:</label>-->
+<!--            &lt;!&ndash; Use th:field to bind the input to the code property &ndash;&gt;-->
+<!--            <input type="text" th:field="*{code}" class="form-control" required-->
+<!--                   pattern="\d{4}" title="4-digit code">-->
+<!--        </div>-->
+<!--        <button type="submit" class="btn btn-primary">Verify</button>-->
+<!--    </form>-->
+<!--</div>-->
+<!--</body>-->
+<!--</html>-->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Code - EcoGuardian</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #1ec24d;
+            --secondary-green: #1e8f4e;
+        }
+
+        .verify-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .alert {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .alert-success {
+            background: #dff0d8;
+            border: 1px solid #d6e9c6;
+            color: #3c763d;
+        }
+
+        .alert-error {
+            background: #f2dede;
+            border: 1px solid #ebccd1;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+<!-- Main Content -->
+<div class="verify-container">
+    <h2 class="mb-4">Verify Recycling Code</h2>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+    <!-- Verification Form -->
+    <form th:action="@{/citizen/verify}" method="POST" th:object="${verificationRequest}">
+        <div class="mb-3">
+            <label for="code" class="form-label">Enter Verification Code:</label>
+            <input type="text" th:field="*{code}" class="form-control" id="code"
+                   required pattern="\d{4}" title="4-digit code">
+            <div class="form-text">Please enter the 4-digit code you received.</div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-check-circle me-2"></i>Verify Code
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>
